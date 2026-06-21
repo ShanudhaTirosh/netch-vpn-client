@@ -1,0 +1,33 @@
+[package]
+name = "netch-client"
+version = "1.0.0"
+description = "Netch VPN desktop client"
+authors = ["Netch Solutions"]
+edition = "2021"
+
+[lib]
+name = "netch_client_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-http = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-autostart = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["time", "net", "rt-multi-thread", "macros"] }
+
+[target.'cfg(windows)'.dependencies]
+# Elevation for TUN is handled via ShellExecuteW "runas" at the OS layer.
+windows-sys = { version = "0.59", features = ["Win32_UI_Shell", "Win32_Foundation"] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

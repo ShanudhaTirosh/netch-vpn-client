@@ -1,0 +1,16 @@
+# dependencies / build output
+node_modules/
+dist/
+src-tauri/target/
+
+# bundled sidecar binaries (fetched at build time via scripts/fetch-singbox.mjs)
+src-tauri/binaries/
+
+# tauri generated
+src-tauri/gen/
+
+# misc
+*.log
+.DS_Store
+Thumbs.db
+.env
