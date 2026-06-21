@@ -8,12 +8,12 @@ import type { AppSettings, ConnectionMode, Profile, ProfileConfig } from '@/type
 
 const URLTEST_URL = 'https://www.gstatic.com/generate_204';
 
-function tlsBlock(c: ProfileConfig) {
+function tlsBlock(c: ProfileConfig, allowInsecure: boolean) {
   if (c.security === 'none') return undefined;
   const tls: any = {
     enabled: true,
     server_name: c.sni || c.host || c.server,
-    insecure: !!c.allowInsecure,
+    insecure: allowInsecure,
     utls: { enabled: true, fingerprint: c.fingerprint || 'chrome' },
   };
   if (c.alpn?.length) tls.alpn = c.alpn;
@@ -55,7 +55,8 @@ function muxBlock(enable: boolean) {
 export function profileToOutbound(p: Profile, settings: AppSettings): any {
   const c = p.config;
   const common: any = { tag: p.id, server: c.server, server_port: c.port };
-  const tls = tlsBlock(c);
+  const insecure = !!c.allowInsecure || settings.allowInsecureTls;
+  const tls = tlsBlock(c, insecure);
   const transport = transportBlock(c);
   const mux = muxBlock(settings.enableMux);
 
@@ -84,14 +85,14 @@ export function profileToOutbound(p: Profile, settings: AppSettings): any {
         ...(c.obfs ? { obfs: { type: c.obfs, password: c.obfsPassword } } : {}),
         ...(c.upMbps ? { up_mbps: c.upMbps } : {}),
         ...(c.downMbps ? { down_mbps: c.downMbps } : {}),
-        tls: { enabled: true, server_name: c.sni || c.server, insecure: !!c.allowInsecure, alpn: c.alpn || ['h3'] },
+        tls: { enabled: true, server_name: c.sni || c.server, insecure, alpn: c.alpn || ['h3'] },
       };
     case 'tuic':
       return {
         type: 'tuic', ...common, uuid: c.uuid, password: c.password,
         congestion_control: c.congestionControl || 'bbr',
         udp_relay_mode: c.udpRelayMode || 'native',
-        tls: { enabled: true, server_name: c.sni || c.server, insecure: !!c.allowInsecure, alpn: c.alpn || ['h3'] },
+        tls: { enabled: true, server_name: c.sni || c.server, insecure, alpn: c.alpn || ['h3'] },
       };
     case 'wireguard':
       return {

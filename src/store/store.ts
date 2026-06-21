@@ -30,6 +30,7 @@ interface State {
   addSubscription: (name: string, url: string) => Promise<void>;
   refreshSubscription: (groupId: string) => Promise<void>;
   renameProfile: (id: string, name: string) => void;
+  updateProfile: (id: string, name: string, configPatch: Partial<import('@/types').ProfileConfig>) => void;
   removeProfile: (id: string) => void;
   setActiveGroup: (id: string) => void;
   connect: (profileId: string) => Promise<void>;
@@ -95,6 +96,11 @@ export const useStore = create<State>()(
       },
 
       renameProfile: (id, name) => set({ profiles: get().profiles.map((p) => p.id === id ? { ...p, name } : p) }),
+      updateProfile: (id, name, configPatch) => set({
+        profiles: get().profiles.map((p) => p.id === id
+          ? { ...p, name: name || p.name, config: { ...p.config, ...configPatch } }
+          : p),
+      }),
       removeProfile: (id) => set({ profiles: get().profiles.filter((p) => p.id !== id) }),
       setActiveGroup: (id) => set({ activeGroupId: id }),
 
@@ -136,7 +142,7 @@ export const useStore = create<State>()(
           get().pushLog('Engine up — testing the selected server through the proxy…');
           const ms = await result.client.testDelay(profileId, undefined, 6000).catch(() => -1);
           if (ms < 0) {
-            get().pushLog('Server did NOT respond through the proxy — engine is running but this profile is not usable (server down, wrong params/SNI/flow, or blocked). Not marking connected.');
+            get().pushLog('Server did NOT respond through the proxy. If this is a TLS profile with SNI camouflage (e.g. sni=aka.ms), turn ON Settings → "Allow insecure TLS" and reconnect. Otherwise check the server is up and the params (flow/SNI/port) are correct.');
             await engineDisconnect().catch(() => {});
             client = null;
             set({ conn: 'error', profiles: get().profiles.map((p) => p.id === profileId ? { ...p, lastLatencyMs: -1 } : p) });

@@ -1,6 +1,6 @@
 {
   "productName": "Netch VPN",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "identifier": "com.netchsolutions.netchvpn",
   "build": {
     "frontendDist": "../dist",

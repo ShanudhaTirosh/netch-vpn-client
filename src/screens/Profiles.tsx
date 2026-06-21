@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '@/store/store';
 import { latencyClass, latencyText } from '@/lib/format';
+import type { Profile } from '@/types';
+import ProfileEditModal from './ProfileEditModal';
 
 export default function Profiles() {
-  const { groups, profiles, activeGroupId, activeProfileId, conn, setActiveGroup, connect, testAll, testTcp, renameProfile, removeProfile, refreshSubscription } = useStore();
+  const { groups, profiles, activeGroupId, activeProfileId, conn, setActiveGroup, connect, testAll, testTcp, removeProfile, refreshSubscription } = useStore();
   const [q, setQ] = useState('');
+  const [editing, setEditing] = useState<Profile | null>(null);
 
   const list = useMemo(() => {
     const inGroup = profiles.filter((p) => p.groupId === activeGroupId);
@@ -50,7 +53,7 @@ export default function Profiles() {
               </div>
               <div className="row" style={{ gap: 6 }}>
                 <button className="btn" title="TCP ping" onClick={() => testTcp(p.id)}>ping</button>
-                <button className="btn" onClick={() => { const n = prompt('Rename profile', p.name); if (n) renameProfile(p.id, n); }}>✎</button>
+                <button className="btn" title="Edit" onClick={() => setEditing(p)}>✎</button>
                 <button className="btn primary" disabled={conn === 'connecting'} onClick={() => connect(p.id)}>Connect</button>
                 <button className="btn" onClick={() => { if (confirm(`Remove ${p.name}?`)) removeProfile(p.id); }}>🗑</button>
               </div>
@@ -58,6 +61,8 @@ export default function Profiles() {
           );
         })}
       </div>
+
+      {editing && <ProfileEditModal profile={editing} onClose={() => setEditing(null)} />}
     </div>
   );
 }

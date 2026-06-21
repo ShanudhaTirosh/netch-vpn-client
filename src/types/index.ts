@@ -109,6 +109,7 @@ export interface AppSettings {
   tunStack: 'system' | 'gvisor' | 'mixed';
   enableMux: boolean;
   enableTcpFastOpen: boolean;
+  allowInsecureTls: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -120,6 +121,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   tunStack: 'mixed',
   enableMux: false,          // off until server-side mux is confirmed (see ASSUMPTIONS)
   enableTcpFastOpen: true,
+  // For self-hosted servers using SNI camouflage (e.g. sni=aka.ms while the cert
+  // is for your real domain), the cert won't match the SNI — enable this to skip
+  // TLS cert verification. Off by default (verification on).
+  allowInsecureTls: false,
 };
 
 /** One parse failure (per-line), so a messy paste reports which lines failed

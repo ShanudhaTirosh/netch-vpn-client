@@ -1,6 +1,6 @@
 [package]
 name = "netch-client"
-version = "1.0.2"
+version = "1.0.3"
 description = "Netch VPN desktop client"
 authors = ["Netch Solutions"]
 edition = "2021"

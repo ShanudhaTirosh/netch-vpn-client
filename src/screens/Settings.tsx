@@ -41,6 +41,11 @@ export default function Settings() {
         </div>
 
         <div className="row between" style={{ marginBottom: 16 }}>
+          <div><div style={{ fontWeight: 600 }}>Allow insecure TLS</div><div style={{ color: 'var(--dim)', fontSize: 12 }}>Skip certificate verification. Required for SNI-camouflage profiles (e.g. sni=aka.ms while the cert is your real domain) — turn this ON if a TLS profile won't connect.</div></div>
+          <Toggle on={settings.allowInsecureTls} onClick={() => setSettings({ allowInsecureTls: !settings.allowInsecureTls })} />
+        </div>
+
+        <div className="row between" style={{ marginBottom: 16 }}>
           <div><div style={{ fontWeight: 600 }}>Multiplex (mux)</div><div style={{ color: 'var(--dim)', fontSize: 12 }}>Only enable if your server's inbound has mux on (see ASSUMPTIONS). Off by default.</div></div>
           <Toggle on={settings.enableMux} onClick={() => setSettings({ enableMux: !settings.enableMux })} />
         </div>
