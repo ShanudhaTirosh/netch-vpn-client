@@ -7,7 +7,7 @@ import {
 } from '@/types';
 import { importText, type ImportSourceKind } from '@/lib/import';
 import { dedupe } from '@/lib/import/util';
-import { connect as engineConnect, disconnect as engineDisconnect, tcpPing, isElevated, relaunchElevated } from '@/lib/engine';
+import { connect as engineConnect, disconnect as engineDisconnect, tcpPing, isElevated, relaunchElevated, exitApp } from '@/lib/engine';
 import type { ClashClient } from '@/lib/clash/client';
 
 interface State {
@@ -42,6 +42,9 @@ interface State {
 
 let client: ClashClient | null = null;
 let disposers: Array<() => void> = [];
+// Guards the elevation relaunch so rapid repeated clicks can't fire multiple
+// UAC prompts / spawn multiple instances.
+let elevating = false;
 
 export const useStore = create<State>()(
   persist(
@@ -96,17 +99,31 @@ export const useStore = create<State>()(
       setActiveGroup: (id) => set({ activeGroupId: id }),
 
       connect: async (profileId) => {
-        const { profiles, activeGroupId, settings } = get();
+        const { profiles, activeGroupId, settings, conn } = get();
+        // Re-entry guard: ignore repeated clicks while a connect/elevation is
+        // already in flight (prevents multiple UAC prompts / launches).
+        if (conn === 'connecting' || elevating) return;
         const groupProfiles = profiles.filter((p) => p.groupId === activeGroupId);
         const mode: ConnectionMode = settings.defaultMode;
 
+        set({ conn: 'connecting', killSwitchEngaged: false });
+
         if (mode === 'tun' && !(await isElevated())) {
+          elevating = true;
           get().pushLog('TUN mode requires elevation — requesting admin (UAC)…');
-          await relaunchElevated();
-          return; // current instance should exit after relaunch
+          const ok = await relaunchElevated().catch(() => false);
+          if (ok) {
+            // The elevated instance takes over; quit this one so there is only
+            // a single window and no repeat prompts.
+            await exitApp().catch(() => {});
+            return;
+          }
+          elevating = false;
+          get().pushLog('Elevation declined — switch Settings → mode to "System proxy" to connect without admin.');
+          set({ conn: 'disconnected' });
+          return;
         }
 
-        set({ conn: 'connecting', killSwitchEngaged: false });
         try {
           const result = await engineConnect(groupProfiles, profileId, settings, mode);
           client = result.client;
@@ -124,6 +141,7 @@ export const useStore = create<State>()(
       },
 
       disconnect: async () => {
+        elevating = false;
         disposers.forEach((d) => d()); disposers = []; client = null;
         await engineDisconnect().catch(() => {});
         set({ conn: 'disconnected', activeProfileId: null, connectedAt: null, traffic: { up: 0, down: 0, ts: 0 } });

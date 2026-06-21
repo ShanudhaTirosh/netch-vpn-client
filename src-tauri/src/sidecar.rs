@@ -69,6 +69,11 @@ pub async fn singbox_start(
         .shell()
         .sidecar("sing-box")
         .map_err(|e| e.to_string())?
+        // Run IN the writable app-config dir so sing-box's cache.db (relative
+        // path) is created somewhere writable. Without this it tries the
+        // process CWD (often Program Files / System32 when elevated) → the
+        // "initialize cache-file: open cache.db: Access is denied" FATAL.
+        .current_dir(cfg_dir.clone())
         .args(["run", "-c", cfg_path.to_string_lossy().as_ref()]);
 
     let (mut rx, child) = sidecar.spawn().map_err(|e| e.to_string())?;

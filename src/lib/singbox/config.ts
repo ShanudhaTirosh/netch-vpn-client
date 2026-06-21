@@ -146,9 +146,10 @@ export function buildSingboxConfig({ profiles, selectedId, settings, mode }: Bui
     { type: 'urltest', tag: 'auto', outbounds: proxyTags, url: URLTEST_URL, interval: '3m', tolerance: 50 },
     ...proxyOutbounds,
     { type: 'direct', tag: 'direct' },
-    { type: 'block', tag: 'block' },
-    { type: 'dns', tag: 'dns-out' },
   ];
+  // NOTE: the legacy `block` and `dns` special outbounds were removed — sing-box
+  // 1.11+ handles those via route rule-actions (`action: "reject"` /
+  // `action: "hijack-dns"`), which this config uses below.
 
   return {
     log: { level: 'info', timestamp: true },
@@ -159,7 +160,6 @@ export function buildSingboxConfig({ profiles, selectedId, settings, mode }: Bui
       servers: [
         { tag: 'remote', address: 'https://1.1.1.1/dns-query', detour: 'proxy' },
         { tag: 'local', address: 'https://223.5.5.5/dns-query', detour: 'direct' },
-        { tag: 'block', address: 'rcode://success' },
       ],
       rules: [
         { outbound: 'any', server: 'local' },           // bootstrap resolver addresses directly

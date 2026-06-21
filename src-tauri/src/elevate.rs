@@ -58,3 +58,10 @@ pub fn relaunch_elevated() -> Result<bool, String> {
     #[allow(unreachable_code)]
     Err("elevation not implemented on this platform; set cap_net_admin on the sing-box binary instead".into())
 }
+
+/// Cleanly exit this instance — used after relaunch_elevated() so the original
+/// (non-elevated) process doesn't linger as a duplicate.
+#[tauri::command]
+pub fn exit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}

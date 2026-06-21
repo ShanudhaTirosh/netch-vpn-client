@@ -69,3 +69,7 @@ export async function isElevated(): Promise<boolean> {
 export async function relaunchElevated(): Promise<boolean> {
   return invoke<boolean>('relaunch_elevated');
 }
+
+export async function exitApp(): Promise<void> {
+  await invoke('exit_app');
+}

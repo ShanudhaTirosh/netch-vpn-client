@@ -72,6 +72,7 @@ pub fn run() {
             sidecar::tcp_ping,
             elevate::is_elevated,
             elevate::relaunch_elevated,
+            elevate::exit_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Netch VPN");
