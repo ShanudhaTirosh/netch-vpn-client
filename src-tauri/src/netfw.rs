@@ -11,28 +11,33 @@
 const RULE_NAME: &str = "NetchVPN-KillSwitch-BlockOutbound";
 
 #[cfg(windows)]
-pub fn enable_kill_switch() {
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+#[cfg(windows)]
+fn netsh(args: &[&str]) {
+    use std::os::windows::process::CommandExt;
     use std::process::Command;
-    // Idempotent: delete any stale rule first, then add the block-all-outbound rule.
     let _ = Command::new("netsh")
-        .args(["advfirewall", "firewall", "delete", "rule", &format!("name={RULE_NAME}")])
-        .output();
-    let _ = Command::new("netsh")
-        .args([
-            "advfirewall", "firewall", "add", "rule",
-            &format!("name={RULE_NAME}"),
-            "dir=out", "action=block", "enable=yes", "profile=any",
-            "remoteip=0.0.0.0-255.255.255.255",
-        ])
+        .args(args)
+        .creation_flags(CREATE_NO_WINDOW)
         .output();
 }
 
 #[cfg(windows)]
+pub fn enable_kill_switch() {
+    // Idempotent: delete any stale rule first, then add the block-all-outbound rule.
+    netsh(&["advfirewall", "firewall", "delete", "rule", &format!("name={RULE_NAME}")]);
+    netsh(&[
+        "advfirewall", "firewall", "add", "rule",
+        &format!("name={RULE_NAME}"),
+        "dir=out", "action=block", "enable=yes", "profile=any",
+        "remoteip=0.0.0.0-255.255.255.255",
+    ]);
+}
+
+#[cfg(windows)]
 pub fn disable_kill_switch() {
-    use std::process::Command;
-    let _ = Command::new("netsh")
-        .args(["advfirewall", "firewall", "delete", "rule", &format!("name={RULE_NAME}")])
-        .output();
+    netsh(&["advfirewall", "firewall", "delete", "rule", &format!("name={RULE_NAME}")]);
 }
 
 #[cfg(not(windows))]

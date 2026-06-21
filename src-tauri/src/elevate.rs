@@ -7,10 +7,14 @@
 pub fn is_elevated() -> bool {
     #[cfg(windows)]
     {
-        // A reliable check: try to open the SCM / a privileged op. Simplers proxy:
-        // attempt to add+remove a temp firewall rule; admin succeeds.
+        // Probe admin rights WITHOUT popping a console window (CREATE_NO_WINDOW).
+        use std::os::windows::process::CommandExt;
         use std::process::Command;
-        let probe = Command::new("net").args(["session"]).output();
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let probe = Command::new("net")
+            .args(["session"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
         return matches!(probe, Ok(o) if o.status.success());
     }
     #[cfg(unix)]

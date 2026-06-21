@@ -108,12 +108,13 @@ function inboundBlock(mode: ConnectionMode, settings: AppSettings) {
     return [{
       type: 'tun',
       tag: 'tun-in',
-      address: ['172.19.0.1/30', 'fdfe:dcba:9876::1/126'],
+      // IPv4-only TUN avoids IPv6 auto_route failures on hosts with partial/no
+      // IPv6 — a common "connected but nothing flows" cause on Windows.
+      address: ['172.19.0.1/30'],
       auto_route: true,
-      strict_route: true,
+      strict_route: false,             // strict_route can blackhole traffic on some Windows setups
       stack: settings.tunStack,        // mixed = gVisor for TCP + system for UDP
-      sniff: true,
-      sniff_override_destination: false,
+      mtu: 9000,
     }];
   }
   // System-proxy fallback: a single mixed (SOCKS+HTTP) listener the app points
@@ -123,7 +124,6 @@ function inboundBlock(mode: ConnectionMode, settings: AppSettings) {
     tag: 'mixed-in',
     listen: '127.0.0.1',
     listen_port: 2080,
-    sniff: true,
     set_system_proxy: false,           // the Rust side sets it explicitly (Step 7)
   }];
 }

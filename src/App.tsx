@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '@/store/store';
+import { exitApp } from '@/lib/engine';
 import Dashboard from '@/screens/Dashboard';
 import Profiles from '@/screens/Profiles';
 import Import from '@/screens/Import';
@@ -48,6 +49,13 @@ export default function App() {
         ))}
         <div className="spacer" />
         <div className="status-pill"><span className={`dot ${dotClass}`} />{statusText}</div>
+        <div
+          className="nav-item"
+          style={{ color: 'var(--danger)' }}
+          onClick={async () => { await useStore.getState().disconnect().catch(() => {}); await exitApp().catch(() => {}); }}
+        >
+          <span style={{ width: 18, textAlign: 'center' }}>⏻</span>Exit
+        </div>
       </aside>
 
       {tab === 'dashboard' && <Dashboard />}

@@ -103,7 +103,11 @@ export const useStore = create<State>()(
         // Re-entry guard: ignore repeated clicks while a connect/elevation is
         // already in flight (prevents multiple UAC prompts / launches).
         if (conn === 'connecting' || elevating) return;
-        const groupProfiles = profiles.filter((p) => p.groupId === activeGroupId);
+        // Build the candidate set from the SELECTED profile's own group so the
+        // chosen node is always present as an outbound (not just the active tab).
+        const prof = profiles.find((p) => p.id === profileId);
+        const groupId = prof?.groupId ?? activeGroupId;
+        const groupProfiles = profiles.filter((p) => p.groupId === groupId);
         const mode: ConnectionMode = settings.defaultMode;
 
         set({ conn: 'connecting', killSwitchEngaged: false });
@@ -127,13 +131,25 @@ export const useStore = create<State>()(
         try {
           const result = await engineConnect(groupProfiles, profileId, settings, mode);
           client = result.client;
+          // Honest health check: does the selected server actually respond
+          // THROUGH the proxy? (Engine being up != tunnel works.)
+          get().pushLog('Engine up — testing the selected server through the proxy…');
+          const ms = await result.client.testDelay(profileId, undefined, 6000).catch(() => -1);
+          if (ms < 0) {
+            get().pushLog('Server did NOT respond through the proxy — engine is running but this profile is not usable (server down, wrong params/SNI/flow, or blocked). Not marking connected.');
+            await engineDisconnect().catch(() => {});
+            client = null;
+            set({ conn: 'error', profiles: get().profiles.map((p) => p.id === profileId ? { ...p, lastLatencyMs: -1 } : p) });
+            return;
+          }
           // Push-based live stats (Step 6: no polling).
           disposers.push(result.client.subscribeTraffic((t) => {
             const cur = get();
             set({ traffic: { up: t.up, down: t.down, ts: Date.now() }, totalUp: cur.totalUp + t.up, totalDown: cur.totalDown + t.down });
           }));
           set({ conn: 'connected', activeProfileId: profileId, connectedAt: Date.now() });
-          set({ profiles: get().profiles.map((p) => p.id === profileId ? { ...p, lastConnectedAt: Date.now() } : p) });
+          set({ profiles: get().profiles.map((p) => p.id === profileId ? { ...p, lastConnectedAt: Date.now(), lastLatencyMs: ms } : p) });
+          get().pushLog(`Connected · ${ms} ms through the selected server`);
         } catch (e) {
           get().pushLog(`Connect failed: ${(e as Error).message}`);
           set({ conn: 'error' });
